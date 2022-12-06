@@ -37,8 +37,28 @@ def make_env(scenario_name, benchmark=False):
     # create world
     world = scenario.make_world()
     # create multiagent environment
-    if benchmark:        
-        env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation, scenario.benchmark_data)
+    if hasattr(scenario, 'done')
+        done = scenario.done
+        print('Scnenario has termination rules - introducing done function')
     else:
-        env = MultiAgentEnv(world, scenario.reset_world, scenario.reward, scenario.observation)
+        done = None
+    if benchmark:
+        env = MultiAgentEnv(world=world,
+                            reset_callback=scenario.reset_world,
+                            reward_callback=scenario.reward,
+                            observation_callback=scenario.observation,
+                            info_callback=scenario.benchmark_data,
+                            done_callback=done
+                            )
+    else:
+        env = MultiAgentEnv(world = world,
+                            reset_callback=scenario.reset_world,
+                            reward_callback=scenario.reward,
+                            observation_callback=scenario.observation,
+                            info_callback=None,
+                            done_callback=done
+                            )
     return env
+
+
+# TODO add post_step from Iqbal
