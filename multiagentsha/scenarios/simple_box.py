@@ -60,7 +60,7 @@ class Scenario(BaseScenario):
                     if a.holding is None and self.is_collision(l,a):
                         l.alive = False
                         a.holding = l.color
-                        a.color = 2
+                        a.color = colors[1]
                         l.state.p_pos = np.array([-999.,-999.]) # TODO check how that shows up on observations or why -999
                         break
             # in treasure_collection we would have to respawn the treasures but that is not needed here as they do not come back
@@ -74,11 +74,11 @@ class Scenario(BaseScenario):
     def reset_world(self, world):
         # random properties for agents
         for i, agent in enumerate(world.agents):
-            agent.color = 0 # TODO generalise
+            agent.color = colors[0] # TODO generalise
             agent.holding = None
         # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
-            landmark.color = 1 # TODO generalise
+            landmark.color = colors[1] # TODO generalise
         # set random initial states
         for agent in world.agents:
             #agent.state.p_pos = np.random.uniform(low=-1, high=+1, size=world.dim_p)

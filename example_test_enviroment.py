@@ -39,7 +39,7 @@ for e in range(n_episodes): # episodes start here
     for t in range(n_timesteps):
         # this is to render and it's completely optional
         # is not needed during the training
-        #env.render()
+        env.render()
 
         # now we are going to take the actions for each agent
         agent_actions = [] # list containing the actions of all agents
