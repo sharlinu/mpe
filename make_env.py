@@ -38,7 +38,7 @@ def make_env(scenario_name, benchmark=False, discrete_action=True):
     # create world
     world = scenario.make_world()
     # create multiagent environment
-    if hasattr(scenario, 'done')
+    if hasattr(scenario, 'done'):
         done = scenario.done
         print('Scnenario has termination rules - introducing done function')
     else:
@@ -50,20 +50,19 @@ def make_env(scenario_name, benchmark=False, discrete_action=True):
                             observation_callback=scenario.observation,
                             info_callback=scenario.benchmark_data,
                             done_callback=done,
+                            post_step_callback=scenario.post_step,
                             discrete_action=discrete_action,
                             )
     else:
-        else:
         env = MultiAgentEnv(world=world,
                             reset_callback=scenario.reset_world,
                             reward_callback=scenario.reward,
                             observation_callback=scenario.observation,
                             info_callback=None,
                             done_callback=done,
+                            post_step_callback=scenario.post_step,
                             discrete_action=discrete_action
                             )
-        env = MultiAgentEnv(world, scenario.reset_world, scenario.reward,
-                            scenario.observation, discrete_action=discrete_action)
     return env
 
 

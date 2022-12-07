@@ -16,6 +16,8 @@ class Scenario(BaseScenario):
 
     def make_world(self):
         world = World()
+        world.dt = 1
+        world.damping = 1
         # set any world properties first
         world.dim_c = 0
         num_agents = 1
@@ -27,6 +29,7 @@ class Scenario(BaseScenario):
         world.landmark_colors = np.arange(goal_length)
 
         for i, agent in enumerate(world.agents):
+            agent.accel = 1
             agent.name = 'agent %d' % i
             agent.collide = False
             agent.silent = True
@@ -40,7 +43,7 @@ class Scenario(BaseScenario):
             landmark.name = 'landmark %d' % i
             # landmark.color = world.landmark_colors
             landmark.alive = True
-            landmark.collide = False # TODO needed?
+            landmark.collide = False
             landmark.movable = False
             # landmark.boundary would make sure that landmarks are not placed on the boundary
         # make initial conditions
@@ -49,6 +52,7 @@ class Scenario(BaseScenario):
         return world
 
     def post_step(self, world):
+        #print('processing post step')
         # self.reset_cached
         for l in world.landmarks:
             if l.alive:
@@ -63,15 +67,15 @@ class Scenario(BaseScenario):
         # treasure_collection has deposit, which could be here equivalent to our locks that need to be moved to
         for a in world.agents:
             if a.holding is not None:
-                for d in self.locks(world):
-                    # TODO deposits can come alive too
-                    # leave to simple setting for now and add later
-                    pass
+                # TODO deposits can come alive too
+                # leave to simple setting for now and add later
+                pass
 
     def reset_world(self, world):
         # random properties for agents
         for i, agent in enumerate(world.agents):
             agent.color = 0 # TODO generalise
+            agent.holding = None
         # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
             landmark.color = 1 # TODO generalise
@@ -84,7 +88,7 @@ class Scenario(BaseScenario):
         for i, landmark in enumerate(world.landmarks):
             #landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
             assert i<1, 'In simple case we should only have one landmark'
-            landmark.state.p_pos = np.array ([1,2]) # TODO generalise to non-simple case
+            landmark.state.p_pos = np.array([1,2]) # TODO generalise to non-simple case
             landmark.state.p_vel = np.zeros(world.dim_p)
             landmark.alive = True
         # TODO in treasure we have calculate_distance?
@@ -117,16 +121,15 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         rew = 0
         # reward for collecting keys
-        for t in world.landmarks(world):
-            rew += sum(self.is_collision(a,t) for a in world.agents if a.holding is None) # TODO scale i.e. *5
+        for t in world.landmarks:
+            rew += sum(self.is_collision(a,t) for a in world.agents if a.holding is None) * 5 # TODO scale i.e. *5
 
         # TODO add here deposit when we generalise to MA and receive collection reward
 
         for l in world.landmarks:
-            pass
-#            # TODO this would just be a simplification but we do not want to have dense rewards?
-#            dists = [self._manhattan(a.state.p_pos, l.state.p_pos) for a in world.agents]
-#            rew -= min(dists)
+            # TODO this would just be a simplification but we do not want to have dense rewards?
+            dists = [self._manhattan(a.state.p_pos, l.state.p_pos) for a in world.agents]
+            rew -= min(dists)
         if agent.collide:
             pass
             # TODO do we want penalty for colliding agents?
@@ -137,15 +140,19 @@ class Scenario(BaseScenario):
         return rew
 
     def done(self, agent, world):
+        #print('testing for done')
         remaining_landmarks = any([l.alive for l in world.landmarks])
+        #print('remaining landmarks', remaining_landmarks)
         if remaining_landmarks:
             return False
         else:
+            print('no landmarks left')
             return True
 
     def observation(self, agent, world):
-        # TODO change that landmark disappears once collected
+        # TODO change that landmark disappears once collected or go to inifinity because that makes the reward plummet
         # get positions of all entities in this agent's reference frame
+
         entity_pos = []
         for entity in world.landmarks:  # world.entities:
             entity_pos.append(entity.state.p_pos - agent.state.p_pos)
@@ -153,7 +160,6 @@ class Scenario(BaseScenario):
         entity_color = []
         for entity in world.landmarks:  # world.entities:
             entity_color.append(entity.color)
-
         # communication of all other agents
         #comm = []
         other_pos = []
@@ -164,7 +170,7 @@ class Scenario(BaseScenario):
             other_pos.append(other.state.p_pos - agent.state.p_pos)
         # TODO should we add color of other entities to observation?
         # TODO check if treasure collection actually appends boolean vectors to observation
-        pocket = agent.holding if agent.holding is not None else 0
+        pocket = np.array([agent.holding if agent.holding is not None else 0])
         return np.concatenate([agent.state.p_pos] + [pocket] + entity_pos + other_pos)
         # + comm
 
@@ -179,4 +185,4 @@ class Scenario(BaseScenario):
 
 # TODO spawning landmarks and players with uniform needs to be changed to box-world
 # TODO reward shaping?
-# TODO walls? Not really needed for anything
+# TODO walls to stop agent going off on the sides

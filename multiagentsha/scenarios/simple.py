@@ -1,6 +1,6 @@
 import numpy as np
-from multiagent.core import World, Agent, Landmark
-from multiagent.scenario import BaseScenario
+from multiagentsha.core import World, Agent, Landmark
+from multiagentsha.scenario import BaseScenario
 
 class Scenario(BaseScenario):
     def make_world(self):
