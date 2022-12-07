@@ -12,7 +12,7 @@ of size (env.world.dim_p + env.world.dim_c, 1). Physical actions precede
 communication actions in this array. See environment.py for more details.
 """
 
-def make_env(scenario_name, benchmark=False):
+def make_env(scenario_name, benchmark=False, discrete_action=True):
     '''
     Creates a MultiAgentEnv object as env. This can be used similar to a gym
     environment by calling env.reset() and env.step().
@@ -23,6 +23,7 @@ def make_env(scenario_name, benchmark=False):
                             (without the .py extension)
         benchmark       :   whether you want to produce benchmarking data
                             (usually only done during evaluation)
+        discrete_action :    discrete actions
 
     Some useful env properties (see environment.py):
         .observation_space  :   Returns the observation space for each agent
@@ -48,16 +49,21 @@ def make_env(scenario_name, benchmark=False):
                             reward_callback=scenario.reward,
                             observation_callback=scenario.observation,
                             info_callback=scenario.benchmark_data,
-                            done_callback=done
+                            done_callback=done,
+                            discrete_action=discrete_action,
                             )
     else:
-        env = MultiAgentEnv(world = world,
+        else:
+        env = MultiAgentEnv(world=world,
                             reset_callback=scenario.reset_world,
                             reward_callback=scenario.reward,
                             observation_callback=scenario.observation,
                             info_callback=None,
-                            done_callback=done
+                            done_callback=done,
+                            discrete_action=discrete_action
                             )
+        env = MultiAgentEnv(world, scenario.reset_world, scenario.reward,
+                            scenario.observation, discrete_action=discrete_action)
     return env
 
 

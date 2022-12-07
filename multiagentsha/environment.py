@@ -16,14 +16,14 @@ class MultiAgentEnv(gym.Env):
                  done_callback=None, shared_viewer=True, discrete_action=False):
 
         self.world = world
-        self.agents = self.world.policy_agents
+        self.agents = self.world.policy_agents # just a property that gives default agents
         # set required vectorized gym env property
         self.n = len(world.policy_agents)
         # scenario callbacks
         self.reset_callback = reset_callback
         self.reward_callback = reward_callback
         self.observation_callback = observation_callback
-        self.info_callback = info_callback
+        self.info_callback = info_callback # this is the benchmark data
         self.done_callback = done_callback
         # environment parameters
         self.discrete_action_space = discrete_action
@@ -42,7 +42,7 @@ class MultiAgentEnv(gym.Env):
             total_action_space = []
             # physical action space
             if self.discrete_action_space:
-                u_action_space = spaces.Discrete(world.dim_p * 2 + 1)
+                u_action_space = spaces.Discrete(world.dim_p * 2 + 1) # for each dim 2 directions + 1 action for do nothing
             else:
                 u_action_space = spaces.Box(low=-agent.u_range, high=+agent.u_range, shape=(world.dim_p,))
             if agent.movable:
@@ -54,7 +54,6 @@ class MultiAgentEnv(gym.Env):
                 c_action_space = spaces.Box(low=0.0, high=1.0, shape=(world.dim_c,))
             if not agent.silent:
                 total_action_space.append(c_action_space)
-            # total action space
             if len(total_action_space) > 1:
                 # all action spaces are discrete, so simplify to MultiDiscrete action space
                 if all([isinstance(act_space, spaces.Discrete) for act_space in total_action_space]):
@@ -63,10 +62,10 @@ class MultiAgentEnv(gym.Env):
                     act_space = spaces.Tuple(total_action_space)
                 self.action_space.append(act_space)
             else:
-                self.action_space.append(total_action_space[0])
+                self.action_space.append(total_action_space[0]) # this just adds the single action space to a list of agent's action spaces
             # observation space
             obs_dim = len(observation_callback(agent, self.world))
-            self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,)))
+            self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,))) # TODO this could be changed to more reasonbale observationspace?
             agent.action.c = np.zeros(self.world.dim_c)
 
         # rendering
@@ -91,6 +90,7 @@ class MultiAgentEnv(gym.Env):
         self.agents = self.world.policy_agents
         # set action for each agent
         for i, agent in enumerate(self.agents):
+            # this is the function that updates the agents.action.u and agent.action.c
             self._set_action(action_n[i], agent, self.action_space[i])
         # advance world state
         self.world.step()
@@ -181,11 +181,11 @@ class MultiAgentEnv(gym.Env):
                     agent.action.u[1] += action[0][3] - action[0][4]
                 else:
                     agent.action.u = action[0]
-            sensitivity = 5.0
+            sensitivity = 5.0 # TODO this is going to push the agent 5 ahead instead of one
             if agent.accel is not None:
                 sensitivity = agent.accel
-            agent.action.u *= sensitivity
-            action = action[1:]
+            agent.action.u *= sensitivity # TODO acceleration should be 1
+            action = action[1:] # removes the physical action from action
         if not agent.silent:
             # communication action
             if self.discrete_action_input:
