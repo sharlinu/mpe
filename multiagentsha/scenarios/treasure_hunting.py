@@ -1,7 +1,7 @@
 import numpy as np
 import seaborn as sns
-from multiagent.core import World, Agent, Landmark, Wall
-from multiagent.scenario import BaseScenario
+from multiagentsha.core import World, Agent, Landmark, Wall
+from multiagentsha.scenario import BaseScenario
 
 class Scenario(BaseScenario):
     def make_world(self):

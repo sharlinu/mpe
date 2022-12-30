@@ -47,8 +47,6 @@ def make_env(scenario_name, benchmark=False, discrete_action=True):
         post_step = scenario.post_step
     else:
         post_step = None
-
-
     if benchmark:
         env = MultiAgentEnv(world=world,
                             reset_callback=scenario.reset_world,
@@ -70,6 +68,3 @@ def make_env(scenario_name, benchmark=False, discrete_action=True):
                             discrete_action=discrete_action
                             )
     return env
-
-
-# TODO add post_step from Iqbal

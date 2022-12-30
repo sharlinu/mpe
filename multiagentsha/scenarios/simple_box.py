@@ -16,8 +16,8 @@ class Scenario(BaseScenario):
 
     def make_world(self):
         world = World()
-        world.dt = 1
-        world.damping = 1
+        #world.dt = 1
+        #world.damping = 1
         # set any world properties first
         world.dim_c = 0
         num_agents = 1
@@ -29,7 +29,7 @@ class Scenario(BaseScenario):
         world.landmark_colors = np.arange(goal_length)
 
         for i, agent in enumerate(world.agents):
-            agent.accel = 1
+            #agent.accel = 1
             agent.name = 'agent %d' % i
             agent.collide = False
             agent.silent = True
@@ -86,7 +86,7 @@ class Scenario(BaseScenario):
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
         for i, landmark in enumerate(world.landmarks):
-            #landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
+            landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
             assert i<1, 'In simple case we should only have one landmark'
             landmark.state.p_pos = np.array([1,2]) # TODO generalise to non-simple case
             landmark.state.p_vel = np.zeros(world.dim_p)
@@ -94,38 +94,31 @@ class Scenario(BaseScenario):
         # TODO in treasure we have calculate_distance?
 
     def benchmark_data(self, agent, world):
-        # TODO change more to treasure collection
         rew = 0
-        collisions = 0
-        collected_keys = 0
         min_dists = 0
         for l in world.landmarks:
-            dists = [self._manhattan(l.state.p_pos, a.state.p_pos) for a in world.agents]
+            dists = [self._manhattan(a.state.p_pos, l.state.p_pos) for a in world.agents]
             min_dists += min(dists)
-            if min(dists) == 0:
+            rew -= min(dists)
+        # TODO change more to treasure collection
+        collected_keys = 0
+        for l in world.landmarks:
+            dist = float(self._manhattan(l.state.p_pos, agent.state.p_pos))
+            l_pos = l.state.p_pos.tolist()
+            if dist == 0:
                 collected_keys += 1
-        if agent.collide:
-            for a in world.agents:
-                if self.is_collision(a, agent):
-                    rew -= 1 # TODO this needs to be changed
-                    collisions += 1
-        landmark_pos = []
-        for i, landmark in enumerate(world.landmarks):
-            landmark_pos.append(landmark.state.p_pos.tolist())
-        return (rew, collisions, min_dists, collected_keys, landmark_pos)
+        return (agent.state.p_pos.tolist(), agent.action.u.tolist(), l_pos, dist, collected_keys)
 
     def is_collision(self, agent1, agent2):
         dist = self._manhattan(agent1.state.p_pos, agent2.state.p_pos)
-        return True if dist == 0 else False
+        return True if dist < 0.15 else False
 
     def reward(self, agent, world):
         rew = 0
         # reward for collecting keys
         for t in world.landmarks:
             rew += sum(self.is_collision(a,t) for a in world.agents if a.holding is None) * 5 # TODO scale i.e. *5
-
         # TODO add here deposit when we generalise to MA and receive collection reward
-
         for l in world.landmarks:
             # TODO this would just be a simplification but we do not want to have dense rewards?
             dists = [self._manhattan(a.state.p_pos, l.state.p_pos) for a in world.agents]
@@ -136,7 +129,6 @@ class Scenario(BaseScenario):
 #            for a in world.agents:
 #                if self.is_collision(a, agent):
 #                    rew -= 1
-
         return rew
 
     def done(self, agent, world):
@@ -160,7 +152,7 @@ class Scenario(BaseScenario):
         entity_color = []
         for entity in world.landmarks:  # world.entities:
             entity_color.append(entity.color)
-        # communication of all other agents
+        # communication of all other agentscol
         #comm = []
         other_pos = []
         for other in world.agents:

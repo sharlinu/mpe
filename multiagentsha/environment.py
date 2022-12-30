@@ -84,7 +84,7 @@ class MultiAgentEnv(gym.Env):
         else:
             np.random.seed(seed)
 
-    def _step(self, action_n):
+    def step(self, action_n):
         obs_n = []
         reward_n = []
         done_n = []
@@ -114,7 +114,7 @@ class MultiAgentEnv(gym.Env):
 
         return obs_n, reward_n, done_n, info_n
 
-    def _reset(self):
+    def reset(self):
         # reset world
         self.reset_callback(self.world)
         # reset renderer
@@ -190,7 +190,7 @@ class MultiAgentEnv(gym.Env):
             if agent.accel is not None:
                 sensitivity = agent.accel
             agent.action.u *= sensitivity
-            print('action', action[0],'i.e.', agent.action.u)
+            #print('action', action[0],'i.e.', agent.action.u)
             action = action[1:] # removes the physical action from action
         if not agent.silent:
             # communication action
@@ -209,7 +209,7 @@ class MultiAgentEnv(gym.Env):
         self.render_geoms_xform = None
 
     # render environment
-    def _render(self, mode='human', close=True, render_vision = True):
+    def render(self, mode='human', close=True, render_vision = True):
         if close:
             # close any existic renderers
             for i,viewer in enumerate(self.viewers):
@@ -346,7 +346,7 @@ class BatchMultiAgentEnv(gym.Env):
     def observation_space(self):
         return self.env_batch[0].observation_space
 
-    def _step(self, action_n, time):
+    def step(self, action_n, time):
         obs_n = []
         reward_n = []
         done_n = []
@@ -361,14 +361,14 @@ class BatchMultiAgentEnv(gym.Env):
             done_n += done
         return obs_n, reward_n, done_n, info_n
 
-    def _reset(self):
+    def reset(self):
         obs_n = []
         for env in self.env_batch:
             obs_n += env.reset()
         return obs_n
 
     # render environment
-    def _render(self, mode='human', close=True, render_vision = True):
+    def render(self, mode='human', close=True, render_vision = True):
         results_n = []
         for env in self.env_batch:
             results_n += env.render(mode, close, render_vision)
