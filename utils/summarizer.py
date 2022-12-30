@@ -11,12 +11,11 @@ from pathlib import Path
 from tensorboardX import SummaryWriter
 import torch 
 import numpy as np
-
 import pdb
 
 class Summarizer:
     """
-        Class fro saving the experiment log files
+        Class for saving the experiment log files
     """ 
     def __init__(self, path_summary, port, resume=''):
 

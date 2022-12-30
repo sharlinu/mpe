@@ -137,7 +137,7 @@ class MADDPG(object):
         vf_loss.backward()
         
         # clip and normalize gradients
-        torch.nn.utils.clip_grad_norm(curr_agent.critic.parameters(), 0.5)
+        torch.nn.utils.clip_grad_norm_(curr_agent.critic.parameters(), 0.5) # TODO change to torch.nn.utils.clip_grad_norm_ and see if that works
         curr_agent.critic_optimizer.step()
 
         curr_agent.policy_optimizer.zero_grad()
@@ -145,7 +145,7 @@ class MADDPG(object):
 
 
         if self.discrete_action:
-            curr_pol_out = curr_agent.policy(obs[agent_i])
+            curr_pol_out = curr_agent.policy(obs[agent_i]) # here we get out a cuda tensor
             curr_pol_vf_in = gumbel_softmax(curr_pol_out, hard=True)
         else:
             curr_pol_out   = curr_agent.policy(obs[agent_i])
@@ -167,7 +167,7 @@ class MADDPG(object):
         pol_loss += (curr_pol_out**2).mean() * 1e-3
         pol_loss.backward()
 
-        torch.nn.utils.clip_grad_norm(curr_agent.policy.parameters(), 0.5)
+        torch.nn.utils.clip_grad_norm_(curr_agent.policy.parameters(), 0.5)
         curr_agent.policy_optimizer.step()
 
         return vf_loss, pol_loss
@@ -245,6 +245,7 @@ class MADDPG(object):
         agent_init_params = []
         alg_types = [adversary_alg if atype == 'adversary' else agent_alg for
                      atype in env.agent_types]
+        #alg_types = ['agent']
         for acsp, obsp, algtype in zip(env.action_space, env.observation_space,
                                        alg_types):
             num_in_pol = obsp.shape[0]

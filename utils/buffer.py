@@ -95,7 +95,10 @@ class ReplayBuffer(object):
 
     def get_average_rewards(self, N):
         if self.filled_i == self.max_steps:
+            # The buffer is full
             inds = np.arange(self.curr_i - N, self.curr_i)  # allow for negative indexing
         else:
             inds = np.arange(max(0, self.curr_i - N), self.curr_i)
         return [self.rew_buffs[i][inds].mean() for i in range(self.num_agents)]
+
+# TODO chec that avgreward is actually the episode

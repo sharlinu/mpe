@@ -92,12 +92,13 @@ def get_params(env_id, seed, n_episodes, episode_length, exp_id, agent_alg):
 
 
     # set arguments which need dependencies
-    dir_exp_name = '{}_{}_{}_{}_{}_seed{}'.format(str([datetime.date.today()][0]),
+    dir_exp_name = '{}_{}_{}_physics1'.format(str([datetime.date.today()][0]),
                                   args['env_id'],
-                                  args['agent_type'],
-                                  args['agent_alg'],
+                                  #args['agent_type'],
+                                  #args['agent_alg'],
                                   args['exp_id'],
-                                  args['random_seed'])
+                                  #args['random_seed']
+                                )
 
     args['dir_exp'] = '{}/{}'.format(args['dir_base'],dir_exp_name)
     args['dir_summary'] = '{}/summary'.format(args['dir_exp'])

@@ -22,6 +22,7 @@ def run(config):
 
     # create folder for evaluating
     eval_path = '{}/evaluate'.format(Path(config['ckpt_path']).parents[1])
+    print('Saving evaluation at {}'.format(eval_path))
     os.makedirs(eval_path, exist_ok=True)
 
     gif_path = '{}/{}'.format(eval_path, 'gifs')
@@ -70,7 +71,8 @@ def run(config):
             'ep': ep_i,
             'final_reward': 0,
             'l_infos': [],
-            'l_rewards': []
+            'l_rewards': [],
+            'finished': 0,
         }
         l_rewards = []
 
@@ -91,10 +93,10 @@ def run(config):
                          for i in range(maddpg.nagents)]
             # get actions as torch Variables
             torch_actions = maddpg.step(torch_obs, explore=False)
+            print(torch_actions)
             # convert actions to numpy arrays
             actions = [ac.data.numpy().flatten() for ac in torch_actions]
             obs, rewards, dones, infos = env.step(actions)
-
             collect_item['final_reward'] = sum(rewards)
             collect_item['l_rewards'].append(sum(rewards))
             collect_item['l_infos'].append(infos)
@@ -104,12 +106,14 @@ def run(config):
             if elapsed < ifi:
                 time.sleep(ifi - elapsed)
 
+            if all(dones):
+                collect_item['finished'] = 1
+                break
         collect_data[ep_i] = collect_item
 
         if config['save_gifs']:
             imageio.mimsave('{}/{}.gif'.format(gif_path, ep_i),
                             frames, duration=ifi)
-
 
     with open('{}/collected_data.json'.format(eval_path), 'w') as outfile:
         json.dump(collect_data, outfile,indent=4)
