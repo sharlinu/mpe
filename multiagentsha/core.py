@@ -202,6 +202,24 @@ class World(object):
         if self.cache_dists:
             self.calculate_distances()
 
+    # get the entity given the id and type
+    def get_entity(self, entity_type: str, id: int) -> Entity:
+        # TODO make this more elegant instead of iterating through everything
+        if entity_type == "agent":
+            for agent in self.agents:
+                if agent.name == f"agent {id}":
+                    return agent
+            raise ValueError(f"Agent with id: {id} doesn't exist in the world")
+        if entity_type == "landmark":
+            for landmark in self.landmarks:
+                if landmark.name == f"landmark {id}":
+                    return landmark
+            raise ValueError(f"Landmark with id: {id} doesn't exist in the world")
+        if entity_type == "obstacle":
+            for obstacle in self.obstacles:
+                if obstacle.name == f"obstacle {id}":
+                    return obstacle
+            raise ValueError(f"Obstacle with id: {id} doesn't exist in the world")
 
     # gather agent action forces
     def apply_action_force(self, p_force):

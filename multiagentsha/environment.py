@@ -29,7 +29,7 @@ class MultiAgentEnv(gym.Env):
         # environment parameters
         self.discrete_action_space = discrete_action
         # if true, action is a number 0...N, otherwise action is a one-hot N-dimensional vector
-        self.discrete_action_input = False
+        self.discrete_action_input = True
         # if true, even the action is continuous, action will be performed discretely
         self.force_discrete_action = world.discrete_action if hasattr(world, 'discrete_action') else False
         # if true, every agent has the same reward
@@ -69,7 +69,9 @@ class MultiAgentEnv(gym.Env):
             obs_dim = len(observation_callback(agent, self.world))
             self.observation_space.append(spaces.Box(low=-np.inf, high=+np.inf, shape=(obs_dim,))) # TODO this could be changed to more reasonbale observationspace?
             agent.action.c = np.zeros(self.world.dim_c)
-
+        self.action_space = spaces.Tuple(tuple(self.action_space))
+        self.observation_space = spaces.Tuple(tuple(self.observation_space))
+        self.n_agents = self.n
         # rendering
         self.shared_viewer = shared_viewer
         if self.shared_viewer:

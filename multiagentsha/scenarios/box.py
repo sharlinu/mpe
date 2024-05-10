@@ -4,8 +4,8 @@ from multiagentsha.scenario import BaseScenario
 
 
 colors = {
-    1: [252, 162, 18],  # gem color
-    0: [138, 136, 134], # agent color
+    1: [0.37, 1, 0.5],  # gem color
+    0: [0.25,0.25,0.25], # agent color
     80: [247, 200, 124] # agent color when they pick up something
 }
 
@@ -20,8 +20,8 @@ class Scenario(BaseScenario):
         #world.damping = 1
         # set any world properties first
         world.dim_c = 0
-        num_agents = 1
-        num_landmarks = 1
+        num_agents = 2
+        num_landmarks = 2
         goal_length = 1
         # add agents
         world.agents = [Agent() for i in range(num_agents)]
@@ -59,51 +59,46 @@ class Scenario(BaseScenario):
                 for a in world.agents:
                     if a.holding is None and self.is_collision(l,a):
                         l.alive = False
-                        a.holding = l.color
-                        a.color = colors[1]
+                        a.holding = True
+                        a.color = l.color
+                        #print(f'take over {l.color} from {a.color}')
                         l.state.p_pos = np.array([-999.,-999.]) # TODO check how that shows up on observations or why -999
-                        break
             # in treasure_collection we would have to respawn the treasures but that is not needed here as they do not come back
         # treasure_collection has deposit, which could be here equivalent to our locks that need to be moved to
-        for a in world.agents:
-            if a.holding is not None:
-                # TODO deposits can come alive too
-                # leave to simple setting for now and add later
-                pass
-
     def reset_world(self, world):
         # random properties for agents
         for i, agent in enumerate(world.agents):
-            agent.color = colors[0] # TODO generalise
+            agent.color = np.array(colors[0])
             agent.holding = None
         # random properties for landmarks
         for i, landmark in enumerate(world.landmarks):
-            landmark.color = colors[1] # TODO generalise
+            landmark.color = np.array(colors[1])# TODO generalise
         # set random initial states
         for agent in world.agents:
-            #agent.state.p_pos = np.ones(world.dim_p)
+            #agent.state.p_pos = np.ones(world.dim_p)*0.5
             agent.state.p_pos = np.random.uniform(low=-1, high=+1, size=world.dim_p)
             agent.state.p_vel = np.zeros(world.dim_p)
             agent.state.c = np.zeros(world.dim_c)
         for i, landmark in enumerate(world.landmarks):
             landmark.state.p_pos = np.random.uniform(-1, +1, world.dim_p)
-            assert i<1, 'In simple case we should only have one landmark'
-            #landmark.state.p_pos = np.array([1,2])
             landmark.state.p_vel = np.zeros(world.dim_p)
             landmark.alive = True
         # TODO in treasure we have calculate_distance?
 
     def benchmark_data(self, agent, world):
+        global dist, l_pos
         rew = 0
         min_dists = 0
         for l in world.landmarks:
             dists = [self._manhattan(a.state.p_pos, l.state.p_pos) for a in world.agents]
+            #dists = [np.sum(np.square(a.state.p_pos - l.state.p_pos)) for a in world.agents]
             min_dists += min(dists)
             rew -= min(dists)
         # TODO change more to treasure collection
         collected_keys = 0
         for l in world.landmarks:
             dist = float(self._manhattan(l.state.p_pos, agent.state.p_pos))
+            #dist = np.sum(np.square(agent.state.p_pos - l.state.p_pos))
             l_pos = l.state.p_pos.tolist()
             if dist == 0:
                 collected_keys += 1
@@ -111,7 +106,8 @@ class Scenario(BaseScenario):
 
     def is_collision(self, agent1, agent2):
         dist = self._manhattan(agent1.state.p_pos, agent2.state.p_pos)
-        return True if dist < 0.15 else False
+        #dist = np.sum(np.square(agent1.state.p_pos - agent2.state.p_pos))
+        return True if dist < 0.2 else False
 
     def reward(self, agent, world):
         rew = 0
@@ -122,6 +118,7 @@ class Scenario(BaseScenario):
         for l in world.landmarks:
             # TODO this would just be a simplification but we do not want to have dense rewards?
             dists = [self._manhattan(a.state.p_pos, l.state.p_pos) for a in world.agents]
+            #dists = [np.sum(np.square(a.state.p_pos - l.state.p_pos)) for a in world.agents]
             rew -= min(dists)
         if agent.collide:
             pass
@@ -138,13 +135,11 @@ class Scenario(BaseScenario):
         if remaining_landmarks:
             return False
         else:
-            print('no landmarks left')
+            #print('no landmarks left')
             return True
 
     def observation(self, agent, world):
-        # TODO change that landmark disappears once collected or go to inifinity because that makes the reward plummet
         # get positions of all entities in this agent's reference frame
-
         entity_pos = []
         for entity in world.landmarks:  # world.entities:
             entity_pos.append(entity.state.p_pos - agent.state.p_pos)
@@ -162,19 +157,10 @@ class Scenario(BaseScenario):
             other_pos.append(other.state.p_pos - agent.state.p_pos)
         # TODO should we add color of other entities to observation?
         # TODO check if treasure collection actually appends boolean vectors to observation
-        pocket = np.array([agent.holding if agent.holding is not None else 0])
-        return np.concatenate([agent.state.p_pos] + [pocket] + entity_pos + other_pos)
+        #print(agent.state.p_pos, agent.color, entity_pos, other_pos)
+        out = np.concatenate([agent.state.p_pos] + [agent.color] + entity_pos + other_pos)
+        return out
         # + comm
 
-# TODO need to change color arrays to color index
-# TODO need to change attributes of landmarks
-# TODO we can have no exception on discerete action for box world, so changing two elements of the action array will not be possible
-# TODO post step in MultiAgentEnv
-
-# TODO change and standardise acceleration and velocity
-# TODO move only discrete
-
-
-# TODO spawning landmarks and players with uniform needs to be changed to box-world
 # TODO reward shaping?
 # TODO walls to stop agent going off on the sides
