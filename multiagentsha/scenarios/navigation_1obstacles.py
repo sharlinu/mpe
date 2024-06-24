@@ -70,9 +70,9 @@ class Scenario(BaseScenario):
             Whether we want to use communication or not
         """
         # pull params from args
-        print('Initialising navigation environment')
+
         self.num_agents: int = 3
-        self.num_obstacles: int = 3
+        self.num_obstacles: int = 1
         self.collaborative: bool = False
         self.max_speed: Optional[float] = 2
         self.collision_rew: float = 5
@@ -389,8 +389,8 @@ class Scenario(BaseScenario):
 
 
 if __name__ == "__main__":
-    from multiagentsha.environment import MultiAgentOrigEnv
-    from multiagentsha.policy import InteractivePolicy
+    from multiagent.environment import MultiAgentOrigEnv
+    from multiagent.policy import InteractivePolicy
 
     # makeshift argparser
     class Args:

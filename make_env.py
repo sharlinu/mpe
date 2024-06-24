@@ -30,7 +30,7 @@ def make_env(scenario_name, benchmark=False, discrete_action=True):
         .action_space       :   Returns the action space for each agent
         .n                  :   Returns the number of Agents
     '''
-    from multiagentsha.environment import MultiAgentEnv
+    from multiagentsha.environment import MultiAgentOrigEnv
     import multiagentsha.scenarios as scenarios
 
     # load scenario from script

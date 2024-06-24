@@ -5,6 +5,7 @@ bin/interactive.py
 multiagentsha/__init__.py
 multiagentsha/core.py
 multiagentsha/environment.py
+multiagentsha/environment2.py
 multiagentsha/policy.py
 multiagentsha/rendering.py
 multiagentsha/scenario.py
@@ -15,8 +16,11 @@ multiagentsha.egg-info/not-zip-safe
 multiagentsha.egg-info/requires.txt
 multiagentsha.egg-info/top_level.txt
 multiagentsha/scenarios/__init__.py
+multiagentsha/scenarios/box.py
 multiagentsha/scenarios/drones_targets_a3.py
 multiagentsha/scenarios/multi_speaker_listener.py
+multiagentsha/scenarios/navigation.py
+multiagentsha/scenarios/navigation_graph.py
 multiagentsha/scenarios/simple.py
 multiagentsha/scenarios/simple_adversary.py
 multiagentsha/scenarios/simple_box.py
@@ -42,4 +46,5 @@ multiagentsha/scenarios/simple_spread_pack_leader.py
 multiagentsha/scenarios/simple_spread_pack_leader_4_2.py
 multiagentsha/scenarios/simple_spread_po.py
 multiagentsha/scenarios/simple_tag.py
-multiagentsha/scenarios/treasure_collection.py
+multiagentsha/scenarios/spread_collect.py
+multiagentsha/scenarios/treasure_hunting.py

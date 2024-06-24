@@ -75,7 +75,7 @@ class Scenario(BaseScenario):
         self.num_obstacles: int = 3
         self.collaborative: bool = False
         self.max_speed: Optional[float] = 2
-        self.collision_rew: float = 5
+        self.collision_rew: float = 7.5
         self.goal_rew: float = 5
         self.min_dist_thresh: float = 0.1
         self.use_dones: bool = False
@@ -293,7 +293,7 @@ class Scenario(BaseScenario):
         if dist_to_goal < self.min_dist_thresh:
             rew += self.goal_rew
         else:
-            rew -= dist_to_goal
+            rew -= 0.25* dist_to_goal
         if agent.collide:
             for a in world.agents:
                 # do not consider collision with itself
@@ -389,8 +389,8 @@ class Scenario(BaseScenario):
 
 
 if __name__ == "__main__":
-    from multiagentsha.environment import MultiAgentOrigEnv
-    from multiagentsha.policy import InteractivePolicy
+    from multiagent.environment import MultiAgentOrigEnv
+    from multiagent.policy import InteractivePolicy
 
     # makeshift argparser
     class Args:
