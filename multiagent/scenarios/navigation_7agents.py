@@ -16,7 +16,7 @@ from multiagent.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def make_world(self, args=None) -> World:
+    def make_world(self) -> World:
         """
         Parameters in args
         ––––––––––––––––––
@@ -71,38 +71,20 @@ class Scenario(BaseScenario):
         """
         # pull params from args
         # print('Initialising navigation environment')
-        if args is None:
-            print('Initializing navigation with fixed parameters')
-            self.num_agents: int = 3
-            self.num_obstacles: int = 3
-            self.collaborative: bool = True
-            self.max_speed: Optional[float] = 2
-            self.collision_rew: float = 5
-            self.goal_rew: float = 5
-            self.min_dist_thresh: float = 0.1
-            self.use_dones: bool = False
-            self.episode_length: int = 25 
-            self.share_env = False
-            self.obs_type = "global"
-            self.use_comm = False
-            self.num_nbd_entities = 3
-            self.max_edge_dist = 1
-        else:
-            print('Initializing with arg parameters')
-            self.num_agents = args.num_agents
-            self.num_obstacles = args.num_obstacles
-            self.collaborative = args.collaborative
-            # self.collaborative = False
-            self.max_speed = args.max_speed
-            self.collision_rew = args.collision_rew
-            self.goal_rew = args.goal_rew
-            self.min_dist_thresh = args.min_dist_thresh
-            self.use_dones = args.use_dones
-            self.episode_length = args.episode_length
-            self.obs_type = args.obs_type
-            self.max_edge_dist = args.max_edge_dist
-            self.num_nbd_entities = args.num_nbd_entities
-            self.use_comm = args.use_comm
+        self.num_agents: int = 7
+        self.num_obstacles: int = 3
+        self.collaborative: bool = False
+        self.max_speed: Optional[float] = 2
+        self.collision_rew: float = 5
+        self.goal_rew: float = 5
+        self.min_dist_thresh: float = 0.1
+        self.use_dones: bool = False
+        self.episode_length: int = 25 
+        self.share_env = False
+        self.obs_type = "global"
+        self.use_comm = False
+        self.num_nbd_entities = 3
+        self.max_edge_dist = 1
         ####################
         world = World()
         world.world_length = self.episode_length

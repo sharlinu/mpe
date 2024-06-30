@@ -30,6 +30,7 @@ class MultiAgentBaseEnv(gym.Env):
         done_callback: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         self.world = world
@@ -55,7 +56,7 @@ class MultiAgentBaseEnv(gym.Env):
 
         # if true, action is a number 0...N,
         # otherwise action is a one-hot N-dimensional vector
-        self.discrete_action_input = True
+        self.discrete_action_input = discrete_action_input
 
         # if true, even the action is continuous,
         # action will be performed discretely
@@ -225,6 +226,7 @@ class MultiAgentBaseEnv(gym.Env):
         if agent.movable:
             # physical action
             # print(f'discrete_action_input: {self.discrete_action_input}, force_discrete_action: {self.force_discrete_action}, discrete_action_space: {self.discrete_action_space}')
+            #print(action)
             if self.discrete_action_input:
                 agent.action.u = np.zeros(self.world.dim_p)
                 # process discrete action
@@ -504,6 +506,7 @@ class MultiAgentOrigEnv(MultiAgentBaseEnv):
         done_callback: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentOrigEnv, self).__init__(
@@ -515,6 +518,7 @@ class MultiAgentOrigEnv(MultiAgentBaseEnv):
             done_callback,
             shared_viewer,
             discrete_action,
+            discrete_action_input,
             scenario_name,
         )
 
@@ -562,7 +566,6 @@ class MultiAgentOrigEnv(MultiAgentBaseEnv):
             obs_n.append(self._get_obs(agent))
         return obs_n
 
-
 class MultiAgentPPOEnv(MultiAgentBaseEnv):
     metadata = {"render.modes": ["human", "rgb_array"]}
     """
@@ -609,6 +612,7 @@ class MultiAgentPPOEnv(MultiAgentBaseEnv):
         done_callback: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentPPOEnv, self).__init__(
@@ -620,6 +624,7 @@ class MultiAgentPPOEnv(MultiAgentBaseEnv):
             done_callback,
             shared_viewer,
             discrete_action,
+            discrete_action_input, 
             scenario_name,
         )
 
@@ -653,7 +658,8 @@ class MultiAgentPPOEnv(MultiAgentBaseEnv):
             reward_n = [
                 [reward]
             ] * self.n  # NOTE this line is different compared to origEnv
-
+        else:
+            reward_n = [[rew] for rew in reward_n]
         return obs_n, reward_n, done_n, info_n
 
     def reset(self) -> Tuple[List, Union[None, np.ndarray]]:
@@ -668,7 +674,6 @@ class MultiAgentPPOEnv(MultiAgentBaseEnv):
         for agent in self.agents:
             obs_n.append(self._get_obs(agent))
         return obs_n
-
 
 class MultiAgentGraphEnv(MultiAgentBaseEnv):
     metadata = {"render.modes": ["human", "rgb_array"]}
@@ -723,6 +728,7 @@ class MultiAgentGraphEnv(MultiAgentBaseEnv):
         update_graph: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentGraphEnv, self).__init__(
@@ -734,6 +740,7 @@ class MultiAgentGraphEnv(MultiAgentBaseEnv):
             done_callback,
             shared_viewer,
             discrete_action,
+            discrete_action_input, 
             scenario_name,
         )
         self.update_graph = update_graph
@@ -751,7 +758,184 @@ class MultiAgentGraphEnv(MultiAgentBaseEnv):
         for agent in self.agents:
             node_obs, adj = self.graph_observation_callback(agent, self.world)
             node_obs_dim = node_obs.shape
-            # adj_dim = adj.shape
+            adj_dim = adj.shape
+            #print(adj.shape, adj[0].shape)
+            #adj_dim = adj[0].shape
+            edge_dim = 1  # NOTE hardcoding edge dimension
+            agent_id_dim = 1  # NOTE hardcoding agent id dimension
+            self.node_observation_space.append(
+                spaces.Box(
+                    low=-np.inf, high=+np.inf, shape=node_obs_dim, dtype=np.float32
+                )
+            )
+            self.adj_observation_space.append(
+                spaces.Box(low=-np.inf, high=+np.inf, shape=adj_dim, dtype=np.float32)
+            )
+            self.edge_observation_space.append(
+                spaces.Box(
+                    low=-np.inf, high=+np.inf, shape=(edge_dim,), dtype=np.float32
+                )
+            )
+            self.agent_id_observation_space.append(
+                spaces.Box(
+                    low=-np.inf, high=+np.inf, shape=(agent_id_dim,), dtype=np.float32
+                )
+            )
+            self.share_agent_id_observation_space.append(
+                spaces.Box(
+                    low=-np.inf,
+                    high=+np.inf,
+                    shape=(num_agents * agent_id_dim,),
+                    dtype=np.float32,
+                )
+            )
+
+    def step(self, action_n: List) -> Tuple[List, List, List, List, List, List, List]:
+        if self.update_graph is not None:
+            self.update_graph(self.world)
+        self.current_step += 1
+        obs_n, reward_n, done_n, info_n = [], [], [], []
+        node_obs_n, adj_n, agent_id_n = [], [], []
+        self.world.current_time_step += 1
+        self.agents = self.world.policy_agents
+        # set action for each agent
+        for i, agent in enumerate(self.agents):
+            self._set_action(action_n[i], agent, self.action_space[i])
+        # advance world state
+        self.world.step()
+        # record observation for each agent
+        for agent in self.agents:
+            obs_n.append(self._get_obs(agent))
+            agent_id_n.append(self._get_id(agent))
+            node_obs, adj = self._get_graph_obs(agent)
+            node_obs_n.append(node_obs)
+            adj_n.append(adj)
+            reward = self._get_reward(agent)
+            reward_n.append([reward])
+            done_n.append(self._get_done(agent))
+            info = {"individual_reward": reward}
+            env_info = self._get_info(agent)
+            info.update(env_info)  # nothing fancy here, just appending dict to dict
+            info_n.append(info)
+
+        # all agents get total reward in cooperative case
+        reward = np.sum(reward_n)
+        if self.shared_reward:
+            reward_n = [[reward]] * self.n  # NOTE this line is similar to PPOEnv
+
+        return obs_n, agent_id_n, node_obs_n, adj_n, reward_n, done_n, info_n
+
+    def reset(self) -> Tuple[List, List, List, List]:
+        self.current_step = 0
+        # reset world
+        self.reset_callback(self.world)
+        # reset renderer
+        self._reset_render()
+        # record observations for each agent
+        obs_n, node_obs_n, adj_n, agent_id_n = [], [], [], []
+        self.agents = self.world.policy_agents
+        for agent in self.agents:
+            obs_n.append(self._get_obs(agent))
+            agent_id_n.append(self._get_id(agent))
+            node_obs, adj = self._get_graph_obs(agent)
+            node_obs_n.append(node_obs)
+            adj_n.append(adj)
+        return obs_n, agent_id_n, node_obs_n, adj_n
+
+    def _get_graph_obs(self, agent: Agent):
+        if self.graph_observation_callback is None:
+            return None, None, None
+        return self.graph_observation_callback(agent, self.world)
+
+    def _get_id(self, agent: Agent):
+        if self.id_callback is None:
+            return None
+        return self.id_callback(agent)
+
+
+class MultiAgentOffPolicyGraphEnv(MultiAgentBaseEnv):
+    metadata = {"render.modes": ["human", "rgb_array"]}
+    """
+        Parameters:
+        –––––––––––
+        world: World
+            World for the environment. Refer `multiagent/core.py`
+        reset_callback: Callable
+            Reset function for the environment. Refer `reset()` in 
+            `multiagent/navigation_graph.py`
+        reward_callback: Callable
+            Reward function for the environment. Refer `reward()` in 
+            `multiagent/navigation_graph.py`
+        observation_callback: Callable
+            Observation function for the environment. Refer `observation()` 
+            in `multiagent/navigation_graph.py`
+        graph_observation_callback: Callable
+            Observation function for graph_related stuff in the environment. 
+            Refer `graph_observation()` in `multiagent/navigation_graph.py`
+        id_callback: Callable
+            A function to get the id of the agent in graph
+            Refer `get_id()` in `multiagent/navigation_graph.py`
+        info_callback: Callable
+            Reset function for the environment. Refer `info_callback()` in 
+            `multiagent/navigation_graph.py`
+        done_callback: Callable
+            Reset function for the environment. Refer `done()` in 
+            `multiagent/navigation_graph.py`
+        update_graph: Callable
+            A function to update the graph structure in the environment
+            Refer `update_graph()` in `multiagent/navigation_graph.py`
+        shared_viewer: bool
+            If we want a shared viewer for rendering the environment or 
+            individual windows for each agent as the ego
+        discrete_action: bool
+            If the action space is discrete or not
+        scenario_name: str
+            Name of the scenario to be loaded. Refer `multiagent/custom_scenarios.py`
+    """
+
+    def __init__(
+        self,
+        world: World,
+        reset_callback: Callable = None,
+        reward_callback: Callable = None,
+        observation_callback: Callable = None,
+        graph_observation_callback: Callable = None,
+        id_callback: Callable = None,
+        info_callback: Callable = None,
+        done_callback: Callable = None,
+        update_graph: Callable = None,
+        shared_viewer: bool = True,
+        discrete_action: bool = True,
+        discrete_action_input: bool = False,
+        scenario_name: str = "navigation",
+    ) -> None:
+        super(MultiAgentOffPolicyGraphEnv, self).__init__(
+            world,
+            reset_callback,
+            reward_callback,
+            observation_callback,
+            info_callback,
+            done_callback,
+            shared_viewer,
+            discrete_action,
+            discrete_action_input, 
+            scenario_name,
+        )
+        self.update_graph = update_graph
+        self.graph_observation_callback = graph_observation_callback
+        self.id_callback = id_callback
+        self.set_graph_obs_space()
+
+    def set_graph_obs_space(self):
+        self.node_observation_space = []
+        self.adj_observation_space = []
+        self.edge_observation_space = []
+        self.agent_id_observation_space = []
+        self.share_agent_id_observation_space = []
+        num_agents = len(self.agents)
+        for agent in self.agents:
+            node_obs, adj = self.graph_observation_callback(agent, self.world)
+            node_obs_dim = node_obs.shape
             adj_dim = adj[0].shape
             edge_dim = 1  # NOTE hardcoding edge dimension
             agent_id_dim = 1  # NOTE hardcoding agent id dimension
@@ -845,6 +1029,7 @@ class MultiAgentGraphEnv(MultiAgentBaseEnv):
         return self.id_callback(agent)
 
 
+
 class MultiAgentGPGEnv(MultiAgentGraphEnv):
     metadata = {"render.modes": ["human", "rgb_array"]}
     """ 
@@ -865,6 +1050,7 @@ class MultiAgentGPGEnv(MultiAgentGraphEnv):
         update_graph: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation_gpg",
     ) -> None:
         super(MultiAgentGPGEnv, self).__init__(
@@ -879,6 +1065,7 @@ class MultiAgentGPGEnv(MultiAgentGraphEnv):
             update_graph,
             shared_viewer,
             discrete_action,
+            discrete_action_input, 
             scenario_name,
         )
 
@@ -955,6 +1142,7 @@ class MultiAgentCADRLEnv(MultiAgentBaseEnv):
         done_callback: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentCADRLEnv, self).__init__(
@@ -966,6 +1154,7 @@ class MultiAgentCADRLEnv(MultiAgentBaseEnv):
             done_callback,
             shared_viewer,
             discrete_action,
+            discrete_action_input,
             scenario_name,
         )
         # self.radius = config_args.radius
@@ -1132,6 +1321,7 @@ class MultiAgentDGNEnv(MultiAgentGraphEnv):
         update_graph: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentDGNEnv, self).__init__(
@@ -1146,6 +1336,7 @@ class MultiAgentDGNEnv(MultiAgentGraphEnv):
             update_graph,
             shared_viewer,
             discrete_action,
+            discrete_action_input, 
             scenario_name,
         )
 
@@ -1223,6 +1414,7 @@ class MultiAgentDGN_ATOCEnv(MultiAgentGraphEnv):
         update_graph: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentDGN_ATOCEnv, self).__init__(
@@ -1237,6 +1429,7 @@ class MultiAgentDGN_ATOCEnv(MultiAgentGraphEnv):
             update_graph,
             shared_viewer,
             discrete_action,
+            discrete_action_input, 
             scenario_name,
         )
 
@@ -1293,35 +1486,34 @@ class MultiAgentDGN_ATOCEnv(MultiAgentGraphEnv):
         # since adj for all agents are same, only return adj_n[0]
         return obs_n, adj_n[0]
 
-
 class MultiAgentOffPolicyEnv(MultiAgentBaseEnv):
     metadata = {"render.modes": ["human", "rgb_array"]}
     """
         This Environment is only for the off-policy baselines
-        The only difference is the way in which the `rewards` and `dones` 
-        are returned. Here they are returned as a list of `dones` and `rewards` 
+        The only difference is the way in which the `rewards` and `dones`
+        are returned. Here they are returned as a list of `dones` and `rewards`
         instead of just scalars
         Parameters:
         –––––––––––
         world: World
             World for the environment. Refer `multiagent/core.py`
         reset_callback: Callable
-            Reset function for the environment. Refer `reset()` in 
+            Reset function for the environment. Refer `reset()` in
             `multiagent/navigation.py`
         reward_callback: Callable
-            Reward function for the environment. Refer `reward()` in 
+            Reward function for the environment. Refer `reward()` in
             `multiagent/navigation.py`
         observation_callback: Callable
-            Observation function for the environment. Refer `observation()` 
+            Observation function for the environment. Refer `observation()`
             in `multiagent/navigation.py`
         info_callback: Callable
-            Reset function for the environment. Refer `info_callback()` in 
+            Reset function for the environment. Refer `info_callback()` in
             `multiagent/navigation.py`
         done_callback: Callable
-            Reset function for the environment. Refer `done()` in 
+            Reset function for the environment. Refer `done()` in
             `multiagent/navigation.py`
         shared_viewer: bool
-            If we want a shared viewer for rendering the environment or 
+            If we want a shared viewer for rendering the environment or
             individual windows for each agent as the ego
         discrete_action: bool
             If the action space is discrete or not
@@ -1337,6 +1529,7 @@ class MultiAgentOffPolicyEnv(MultiAgentBaseEnv):
         done_callback: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = True,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentOffPolicyEnv, self).__init__(
@@ -1348,6 +1541,7 @@ class MultiAgentOffPolicyEnv(MultiAgentBaseEnv):
             done_callback,
             shared_viewer,
             discrete_action,
+            discrete_action_input, 
             scenario_name,
         )
 
@@ -1414,6 +1608,7 @@ class MultiAgentMPNNEnv(MultiAgentOrigEnv):
         done_callback: Callable = None,
         shared_viewer: bool = True,
         discrete_action: bool = False,
+        discrete_action_input: bool = False,
         scenario_name: str = "navigation",
     ) -> None:
         super(MultiAgentMPNNEnv, self).__init__(
@@ -1425,6 +1620,7 @@ class MultiAgentMPNNEnv(MultiAgentOrigEnv):
             done_callback,
             shared_viewer,
             discrete_action,
+            discrete_action_input,
             scenario_name,
         )
         self.discrete_action_space = True

@@ -9,7 +9,8 @@ _particles = {
     "navigation_red_rew": "Navigation-rew-v0",
     "navigation_red_rew2": "Navigation-rew0.1-v0",
     "navigation_red_rew3": "Navigation-rew0.25-v0",
-    "navigation_red_rew_coll": "Navigation-rew-col-v0"
+    "navigation_red_rew_coll": "Navigation-rew-col-v0", 
+    "navigation_7agents": "Navigation-7a-v0",
 #    "multi_speaker_listener": "MultiSpeakerListener-v0",
 #    "simple_adversary": "SimpleAdversary-v0",
 #    "simple_crypto": "SimpleCrypto-v0",
@@ -29,9 +30,10 @@ for scenario_name, gymkey in _particles.items():
     # Registers multi-agent particle environments:
     register(
         gymkey,
-        entry_point="multiagent.environment:MultiAgentOffPolicyEnv",
+        entry_point="multiagent.environment:MultiAgentOrigEnv",
         kwargs={
             # "discrete_action": True, # TODO why does this need to be specified here?
+            'discrete_action_input':True,
             "world": world,
             "reset_callback": scenario.reset_world,
             "info_callback": scenario.info_callback,

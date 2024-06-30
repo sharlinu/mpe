@@ -77,6 +77,35 @@ def GraphMPEEnv(args):
         world=world,
         reset_callback=scenario.reset_world,
         reward_callback=scenario.reward,
+        observation_callback=scenario.observation,
+        graph_observation_callback=scenario.graph_observation,
+        update_graph=scenario.update_graph,
+        id_callback=scenario.get_id,
+        info_callback=scenario.info_callback,
+        scenario_name=args.scenario_name,
+    )
+
+    return env
+
+
+def RelGraphMPEEnv(args):
+    """
+    Same as MPEEnv but for graph environment
+    """
+
+    # load scenario from script
+    assert "graph" in args.scenario_name, "Only use graph env for graph scenarios"
+    scenario = load(args.scenario_name + ".py").Scenario()
+    print('created scenario')
+    # create world
+    world = scenario.make_world(args=args)
+    from multiagent.environment import MultiAgentOffPolicyGraphEnv
+
+    # create multiagent environment
+    env = MultiAgentGraphEnv(
+        world=world,
+        reset_callback=scenario.reset_world,
+        reward_callback=scenario.reward,
         observation_callback=scenario.global_observation,
         graph_observation_callback=scenario.rel_graph_observation,
         update_graph=scenario.update_graph,
@@ -86,6 +115,7 @@ def GraphMPEEnv(args):
     )
 
     return env
+
 
 
 def GPGMPEEnv(args):
