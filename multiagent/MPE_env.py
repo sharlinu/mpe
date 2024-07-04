@@ -100,18 +100,24 @@ def RelGraphMPEEnv(args):
     # create world
     world = scenario.make_world(args=args)
     from multiagent.environment import MultiAgentOffPolicyGraphEnv
-
+    if args.standard_relations:
+        print('Using standard 5 relations')
+        graph_observation_callback = scenario.rel_graph_observation
     # create multiagent environment
-    env = MultiAgentGraphEnv(
+    else:
+        graph_observation_callback = scenario.count_graph_observation
+
+    env = MultiAgentOffPolicyGraphEnv(
         world=world,
         reset_callback=scenario.reset_world,
         reward_callback=scenario.reward,
         observation_callback=scenario.global_observation,
-        graph_observation_callback=scenario.rel_graph_observation,
+        graph_observation_callback=graph_observation_callback,
         update_graph=scenario.update_graph,
         id_callback=scenario.get_id,
         info_callback=scenario.info_callback,
         scenario_name=args.scenario_name,
+        discrete_action_input=True,
     )
 
     return env

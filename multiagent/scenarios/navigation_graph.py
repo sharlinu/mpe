@@ -100,6 +100,10 @@ class Scenario(BaseScenario):
         self.min_dist_thresh = args.min_dist_thresh
         self.use_dones = args.use_dones
         self.episode_length = args.episode_length
+        if not hasattr(args, 'reward_sparsity'):
+            self.reward_sparsity = 1
+        else:
+            self.reward_sparsity = args.reward_sparsity
         if not hasattr(args, "max_edge_dist"):
             self.max_edge_dist = 1
             print("_" * 60)
@@ -405,7 +409,7 @@ class Scenario(BaseScenario):
         if dist_to_goal < self.min_dist_thresh:
             rew += self.goal_rew
         else:
-            rew -= dist_to_goal
+            rew -= self.reward_sparsity * dist_to_goal
         if agent.collide:
             for a in world.agents:
                 # do not consider collision with itself
@@ -615,43 +619,42 @@ class Scenario(BaseScenario):
                 for j, entity in enumerate(world.entities):
                     # right
                     # top
-                    count = 0
+                    # count = 0
                     if dists[i,j,1] > 0:
                         top = True
                     if dists[i, j, 0] > 0:
                         if top is True:
                             if dists[i,j,1] > dists[i,j,0]:
                                 spatial_tensors[0][i,j] = 1
-                                count += 1
+                 #               count += 1
                             elif dists[i,j,1] < dists[i,j,0]:
                                 spatial_tensors[1][i,j] = 1
-                                count += 1
+                #                count += 1
                         else:
                             if dists[i,j,1] > - dists[i,j,0]:
                                 spatial_tensors[2][i,j] = 1
-                                count += 1
+               #                 count += 1
                             elif dists[i,j,1] < - dists[i,j,0]:
                                 spatial_tensors[3][i,j] = 1
-                                count += 1
+              #                  count += 1
                     else:
                         if top is True:
                             if dists[i,j,1] > - dists[i,j,0]:
                                 spatial_tensors[4][i,j] = 1
-                                count += 1
+             #                   count += 1
                             elif dists[i,j,1] < - dists[i,j,0]:
                                 spatial_tensors[5][i,j] = 1
-                                count +=1
+            #                    count +=1
                         else:
                             if dists[i,j,1] > dists[i,j,0]:
                                 spatial_tensors[6][i,j] = 1
-                                count += 1
+           #                     count += 1
                             elif dists[i,j,1] < dists[i,j,0]:
                                 spatial_tensors[7][i,j] = 1
-                                count += 1
-                    if i == j:
-                        count += 1
+          #                      count += 1
+         #               count += 1
 
-                    assert count != 0, 'error'
+        #            assert count != 0, 'error'
                     # adj
                     if (np.linalg.norm(dists[i,j,:]) < self.min_dist_thresh ) and (np.linalg.norm(dists[i,j,:]) !=0) :
                         spatial_tensors[8][i, j] = 1
@@ -804,8 +807,8 @@ if __name__ == "__main__":
         reward_callback=scenario.reward,
         # observation_callback=scenario.observation,
         observation_callback=scenario.global_observation,
-        graph_observation_callback=scenario.graph_observation,
-        #graph_observation_callback=scenario.rel_graph_observation,
+        # graph_observation_callback=scenario.graph_observation,
+        graph_observation_callback=scenario.rel_graph_observation,
         info_callback=scenario.info_callback,
         done_callback=scenario.done,
         id_callback=scenario.get_id,
